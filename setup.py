@@ -19,7 +19,6 @@ setuptools.setup(
     packages=[
         'pybackground'
     ],
-    packages=setuptools.find_packages(),
     keywords=[
         'background-jobs',
         'background-thread',
@@ -27,7 +26,8 @@ setuptools.setup(
         'background'
     ],
     classifiers=[
-        'License :: OSI Approved :: MIT License'
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.7',
     ],
