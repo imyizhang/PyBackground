@@ -71,7 +71,7 @@ sched.shutdown()
 
 ### Play with the `@task` decorator
 
-Use `@task` to define your function and start executing it, `now(cost)` as an example:
+Use `@task` decorator to define your function and start executing it, `now(cost)` as an example:
 
 ```python
 import pybackground
@@ -91,6 +91,53 @@ now.sched()
 
 
 
+## Documentation
+
+### `BackgroundScheduler`/`BlockingScheduler`
+
+```python
+class pybackground.BackgroundScheduler/BlockingScheduler(max_worker=<num_cpu_cores>)
+```
+
+`max_worker` is set for `ThreadPoolExecutor`, default value is the number of CPU cores.
+
+* `stopped`
+
+  The scheduler is stopped or not, `True` (default) or `False`.
+
+* `start(fn, args=(), kwargs={}, timeout=TIMEOUT)`
+
+  Let scheduler start executing your function using thread pool in the background or foreground, default value of `timeout` is `TIMEOUT`, 3 seconds.
+
+* `shutdown(wait=True)`
+
+  Shutdown the scheduler.
+
+
+
+### `task`
+
+```python
+class pybackground.task(scheduler, timeout=TIMEOUT)
+```
+
+`timeout` is set for function executing, default value is `TIMEOUT`, 3 seconds.
+
+* Use `@task` decorator to define your function and start executing it:
+
+  ```python
+  @task(scheduler)
+  def fn(args, kwargs):
+      pass
+    
+  fn.shed(*args, **kwargs)
+  ```
+
+  `fn.shed(*args, **kwargs)` is equivaluent to `sheduler.start(fn, args, kwargs)` with normal function definition.
+
+
+
 ## Related Projects
 
 * [APScheduler](https://github.com/agronholm/apscheduler) ([apscheduler.readthedocs.org](http://apscheduler.readthedocs.org))
+
