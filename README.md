@@ -3,7 +3,7 @@
 PyBackground is
 
 * a lightweight scheduler that runs in the background
-* written in [Python (3.7+) Standard Library](https://docs.python.org/3.7/library/) 
+* written in [Python (3.7+) Standard Library](https://docs.python.org/3.7/library/)
 
 
 
@@ -57,7 +57,7 @@ print(sched.stopped)
 def timer(interval=5):
     while not sched.stopped:
         now()
-        
+
 sched.start(timer)
 ```
 
@@ -81,11 +81,11 @@ sched = pybackground.BackgroundScheduler()
 
 import time
 
-@task(sched)
+@pybackground.task(sched)
 def now(cost=3):
     print( time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()) )
     time.sleep(cost)
-    
+
 now.sched()
 ```
 

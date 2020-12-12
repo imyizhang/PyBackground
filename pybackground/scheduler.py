@@ -5,6 +5,8 @@
 BlockingScheduler, BackgroundScheduler.
 """
 
+TIMEOUT = 3
+
 import functools
 
 
@@ -34,7 +36,7 @@ class Scheduler(object):
         self.stopped = True
 
     # cannot start new tasks after shutdown
-    def start(self, fn, args=(), kwargs={}, timeout=TIMEOUT):
+    def start(self, fn, args=(), kwargs={}):
         self.stopped = False
         with self._lock:
             self._run(fn, args, kwargs)
