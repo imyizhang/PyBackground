@@ -7,25 +7,14 @@ BlockingScheduler, BackgroundScheduler.
 
 TIMEOUT = 3
 
-import functools
+import collections
+import os
+import concurrent.futures
+import threading
+import uuid
 
 
-# task class as decorator
-class task(object):
-
-    def __init__(self, scheduler, timeout=TIMEOUT):
-        self.scheduler = scheduler
-        self.timeout = timeout
-
-    def __call__(self, fn):
-        @functools.wraps(fn)
-        def sched(*args, **kwargs):
-            self.scheduler.start(fn, args=args, kwargs=kwargs, timeout=self.timeout)
-        fn.sched = sched
-        return fn
-
-
-import os, threading, concurrent.futures
+Task = collections.namedtuple('Task', 'fn, args, kwargs')
 
 
 class Scheduler(object):
@@ -33,19 +22,45 @@ class Scheduler(object):
     def __init__(self, max_workers=os.cpu_count()):
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
         self._lock = threading.RLock()
-        self.stopped = True
+        self._stopped = True
+        self._id = None
+        self._task = []
+        self._future = []
+
+    @property
+    def stopped(self):
+        return self._stopped
+
+    # useful for BlockingScheduler
+    @property
+    def latest_id(self):
+        return self._id
+
+    @property
+    def task(self):
+        return dict(self._task)
+
+    @property
+    def future(self):
+        return dict(self._future)
 
     # cannot start new tasks after shutdown
     def start(self, fn, args=(), kwargs={}):
-        self.stopped = False
+        self._stopped = False
+        self._id = uuid.uuid4().hex
+        self._packup(fn, args, kwargs)
         with self._lock:
             self._run(fn, args, kwargs)
 
+    def _packup(self, fn, args, kwargs):
+        self._task.append( (self._id, Task(fn, args, kwargs)) )
+
     def _run(self, fn, args, kwargs):
         future = self._executor.submit(fn, *args, **kwargs)
+        self._future.append( (self._id, future) )
 
     def shutdown(self, wait=True):
-        self.stopped = True
+        self._stopped = True
         with self._lock:
             self._executor.shutdown(wait=wait)
 
@@ -61,6 +76,7 @@ class BlockingScheduler(Scheduler):
         self._event = threading.Event()
         super(BlockingScheduler, self).start(fn, args, kwargs)
         self._loop(timeout)
+        return self._id
 
     def _loop(self, timeout):
         while not self.stopped:
@@ -85,6 +101,7 @@ class BackgroundScheduler(BlockingScheduler):
         self._thread = threading.Thread(target=self._loop, name='background', args=(timeout,))
         self._thread.daemon = True
         self._thread.start()
+        return self._id
 
     def shutdown(self, wait=True):
         super(BackgroundScheduler, self).shutdown(wait)

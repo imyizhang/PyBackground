@@ -8,8 +8,8 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setuptools.setup(
     name='PyBackground',
-    version='0.1.0',
-    description='A lightweight scheduler that run tasks in the background',
+    version='0.1.1',
+    description='A lightweight scheduler that runs tasks in the background',
     author='Yi Zhang',
     author_email='yizhang.dev@gmail.com',
     long_description=README,

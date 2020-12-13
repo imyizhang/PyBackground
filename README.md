@@ -2,7 +2,7 @@
 
 PyBackground is
 
-* a lightweight scheduler that runs in the background
+* a lightweight scheduler that runs tasks in the background
 * written in [Python (3.7+) Standard Library](https://docs.python.org/3.7/library/)
 
 
@@ -10,36 +10,41 @@ PyBackground is
 PyBackground supports to
 
 * execute tasks using thread pool
-* run in the either foreground or background
+* run in the background (or foreground)
 * use `@task` decorator to define task
 
 
 
 ## Quickstart
 
-Define your function, `now(cost)` as an example:
+Define your functions:
 
 ```python
 import time
 
 def now(cost=1):
-    print( time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()) )
     time.sleep(cost)
+    print( time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()) )
+    
+def utcnow(cost=1):
+    time.sleep(cost)
+    print( time.strftime('%Y-%m-%d %H:%M:%S %Z', time.gmtime()) )
 ```
 
-Create a PyBackground scheduler and start executing your function:
+Create a PyBackground scheduler and start executing your functions:
 
 ```python
 import pybackground
 
 sched = pybackground.BackgroundScheduler()
-sched.start(now)
+sched.start(now, args=(1,))
+sched.start(utcnow, args=(1,))
 ```
 
 Shutdown the scheduler:
 
 ```python
-sched.shutdown()
+sched.shutdown(wait=True)
 ```
 
 
@@ -54,39 +59,59 @@ import pybackground
 sched = pybackground.BackgroundScheduler()
 print(sched.stopped)
 
-def timer(interval=5):
+def timer(interval=3):
     while not sched.stopped:
         now()
 
-sched.start(timer)
+sched.start(timer, args=(3,))
 ```
 
 `timer(interval)` then runs forever in a seperate thread. When you'd like to terminate it, shutdown the scheduler as usual:
 
 ```python
-sched.shutdown()
+sched.shutdown(wait=True)
 ```
 
 
 
 ### Play with the `@task` decorator
 
-Use `@task` decorator to define your function and start executing it, `now(cost)` as an example:
+Use `@task` decorator to define your functions and start executing them, scheduling `now(cost)` and `utcnow(cost)` as an example:
 
 ```python
 import pybackground
 
 sched = pybackground.BackgroundScheduler()
 
-
 import time
 
 @pybackground.task(sched)
-def now(cost=3):
-    print( time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()) )
+def now(cost=1):
     time.sleep(cost)
+    print( time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()) )
+    
+now.start(cost=1)
 
-now.sched()
+@pybackground.task(sched)
+def utcnow(cost=1):
+    time.sleep(cost)
+    print( time.strftime('%Y-%m-%d %H:%M:%S %Z', time.gmtime()) )
+    
+utcnow.start(cost=1)
+```
+
+Shutdown the scheduler in normal way:
+
+```python
+sched.shutdown(wait=True)
+```
+
+
+
+### Install PyBackground
+
+```bash
+$ pip install pybackground
 ```
 
 
@@ -105,9 +130,21 @@ class pybackground.BackgroundScheduler/BlockingScheduler(max_worker=<num_cpu_cor
 
   The scheduler is stopped or not, `True` (default) or `False`.
 
+* `latest_id`
+
+  The latest task id, which may be useful for `pybackground.BlockingScheduler`. 
+
+* `task`
+
+  The task id, `Task` object (`collections.namedtuple('Task', 'fn, args, kwargs')`) dictionary, `{}` as default.
+
+* `future`
+
+  The task id, [`Future`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Future) object dictionary, `{}` as default.
+
 * `start(fn, args=(), kwargs={}, timeout=TIMEOUT)`
 
-  Let scheduler start executing your function using thread pool in the background or foreground, default value of `timeout` is `TIMEOUT`, 3 seconds.
+  Let scheduler start executing your function using thread pool in the background (or foreground), default value of `timeout` is `TIMEOUT`, 3 seconds. It returns corresponding task id.
 
 * `shutdown(wait=True)`
 
@@ -123,17 +160,17 @@ class pybackground.task(scheduler, timeout=TIMEOUT)
 
 `timeout` is set for function executing, default value is `TIMEOUT`, 3 seconds.
 
-* Use `@task` decorator to define your function and start executing it:
+* Use `@task` decorator to define your functions and start executing them:
 
   ```python
   @task(scheduler)
   def fn(args, kwargs):
       pass
     
-  fn.shed(*args, **kwargs)
+  fn.start(*args, **kwargs)
   ```
 
-  `fn.shed(*args, **kwargs)` is equivaluent to `sheduler.start(fn, args, kwargs)` with normal function definition.
+  `fn.start(*args, **kwargs)` is equivaluent to `sheduler.start(fn, args, kwargs)` using normal function definition.
 
 
 
