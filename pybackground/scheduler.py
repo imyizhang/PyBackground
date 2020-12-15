@@ -8,6 +8,7 @@ BlockingScheduler, BackgroundScheduler.
 TIMEOUT = 3
 
 import collections
+import abc
 import os
 import concurrent.futures
 import threading
@@ -18,6 +19,8 @@ Task = collections.namedtuple('Task', 'fn, args, kwargs')
 
 
 class Scheduler(object):
+
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, max_workers=os.cpu_count()):
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
@@ -45,6 +48,7 @@ class Scheduler(object):
         return dict(self._future)
 
     # cannot start new tasks after shutdown
+    @abc.abstractmethod
     def start(self, fn, args=(), kwargs={}):
         self._stopped = False
         self._id = uuid.uuid4().hex
@@ -59,6 +63,7 @@ class Scheduler(object):
         future = self._executor.submit(fn, *args, **kwargs)
         self._future.append( (self._id, future) )
 
+    @abc.abstractmethod
     def shutdown(self, wait=True):
         self._stopped = True
         with self._lock:
@@ -67,15 +72,15 @@ class Scheduler(object):
 
 class BlockingScheduler(Scheduler):
     """A scheduler that runs in the foreground.
-    Scheduler.start(fn, args, kwargs) will block.
+    BlockingScheduler.start(fn, args, kwargs) will block.
     """
 
     _event = None
 
-    def start(self, fn, args=(), kwargs={}, timeout=TIMEOUT):
+    def start(self, fn, args=(), kwargs={}):
         self._event = threading.Event()
-        super(BlockingScheduler, self).start(fn, args, kwargs)
-        self._loop(timeout)
+        super().start(fn, args, kwargs)
+        self._loop(TIMEOUT)
         return self._id
 
     def _loop(self, timeout):
@@ -84,26 +89,26 @@ class BlockingScheduler(Scheduler):
             self._event.clear()
 
     def shutdown(self, wait=True):
-        super(BlockingScheduler, self).shutdown(wait)
+        super().shutdown(wait)
         self._event.set()
 
 
 class BackgroundScheduler(BlockingScheduler):
     """A scheduler that runs in the background using a separate thread.
-    Scheduler.start(fn, args, kwargs) will return immediately.
+    BackgroundScheduler.start(fn, args, kwargs) will return immediately.
     """
 
     _thread = None
 
-    def start(self, fn, args=(), kwargs={}, timeout=TIMEOUT):
+    def start(self, fn, args=(), kwargs={}):
         self._event = threading.Event()
         Scheduler.start(self, fn, args, kwargs)
-        self._thread = threading.Thread(target=self._loop, name='background', args=(timeout,))
+        self._thread = threading.Thread(target=self._loop, name='background', args=(TIMEOUT,))
         self._thread.daemon = True
         self._thread.start()
         return self._id
 
     def shutdown(self, wait=True):
-        super(BackgroundScheduler, self).shutdown(wait)
+        super().shutdown(wait)
         self._thread.join()
         del self._thread

@@ -142,9 +142,9 @@ class pybackground.BackgroundScheduler/BlockingScheduler(max_worker=<num_cpu_cor
 
   The task id, [`Future`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Future) object dictionary, `{}` as default.
 
-* `start(fn, args=(), kwargs={}, timeout=TIMEOUT)`
+* `start(fn, args=(), kwargs={})`
 
-  Let scheduler start executing your function using thread pool in the background (or foreground), default value of `timeout` is `TIMEOUT`, 3 seconds. It returns corresponding task id.
+  Let scheduler start executing your function using thread pool in the background (or foreground). It returns corresponding task id.
 
 * `shutdown(wait=True)`
 
@@ -155,10 +155,8 @@ class pybackground.BackgroundScheduler/BlockingScheduler(max_worker=<num_cpu_cor
 ### `task`
 
 ```python
-class pybackground.task(scheduler, timeout=TIMEOUT)
+class pybackground.task(scheduler)
 ```
-
-`timeout` is set for function executing, default value is `TIMEOUT`, 3 seconds.
 
 * Use `@task` decorator to define your functions and start executing them:
 
